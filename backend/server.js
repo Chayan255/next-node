@@ -25,7 +25,14 @@
 // // =========================
 // // 🔧 Middleware Configuration
 // // =========================
-// app.use(cors());
+// app.use(
+//   cors({
+//     origin: "*", // ✅ You can restrict this later to your Vercel domain
+//     methods: ["GET", "POST", "PUT", "DELETE"],
+//     allowedHeaders: ["Content-Type", "Authorization"],
+//   })
+// );
+
 // app.use(bodyParser.json());
 // app.use(bodyParser.urlencoded({ extended: true })); // ✅ Support for form-data
 
@@ -42,7 +49,6 @@
 
 // // ✅ Serve static files from uploads
 // app.use("/uploads", express.static(uploadDir));
-
 
 // // =========================
 // // 🧩 API Routes
@@ -80,24 +86,32 @@
 // app.post("/api/news/upload", upload.single("image"), (req, res) => {
 //   try {
 //     if (!req.file) {
-//       return res.status(400).json({ success: false, message: "No image uploaded." });
+//       return res
+//         .status(400)
+//         .json({ success: false, message: "No image uploaded." });
 //     }
 
-//     const imageUrl = `/uploads/${req.file.filename}`;
+//     // 🌐 Detect environment (local or live)
+//     const baseUrl =
+//       process.env.BASE_URL || `https://node-next-backend.up.railway.app`; // fallback live URL
+//     const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
+
 //     res.status(200).json({
 //       success: true,
 //       message: "✅ Image uploaded successfully.",
-//       imageUrl: `http://localhost:${process.env.PORT || 5000}${imageUrl}`,
+//       imageUrl,
 //     });
 //   } catch (error) {
 //     console.error("❌ Upload error:", error);
-//     res.status(500).json({ success: false, message: "Server error during upload." });
+//     res
+//       .status(500)
+//       .json({ success: false, message: "Server error during upload." });
 //   }
 // });
 
 // // =========================
 // // 🩺 Test DB connection
-// // ========================
+// // =========================
 // try {
 //   db.connect?.((err) => {
 //     if (err) console.error("❌ Database Connection Error:", err);
@@ -111,9 +125,9 @@
 // // 🚀 Start Server
 // // =========================
 // const PORT = process.env.PORT || 5000;
-// app.listen(PORT, () => {
+// app.listen(PORT, "0.0.0.0", () => {
 //   console.log(`🚀 Server running on port ${PORT}`);
-//   console.log(`📸 Uploads available at: http://localhost:${PORT}/uploads`);
+//   console.log(`📸 Uploads available at /uploads`);
 // });
 
 
@@ -136,20 +150,26 @@ import adminAuthRoutes from "./routes/adminAuthRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 
-// ✅ Load .env variables
+// ✅ Load environment variables
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5000;
 
-// ==============================
-// 🔧 Middleware
-// ==============================
-app.use(cors({ origin: true, credentials: true }));
+// =========================
+// 🔧 Middleware Configuration
+// =========================
+app.use(
+  cors({
+    origin: "*", // later replace with your Vercel domain if needed
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-// 🧠 For ESM __dirname
+// 🧠 For ESM __dirname workaround
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -160,12 +180,12 @@ if (!fs.existsSync(uploadDir)) {
   console.log("📁 'uploads' folder created automatically.");
 }
 
-// ✅ Serve uploaded images
+// ✅ Serve static uploads
 app.use("/uploads", express.static(uploadDir));
 
-// ==============================
+// =========================
 // 🧩 API Routes
-// ==============================
+// =========================
 app.use("/api", testRoute);
 app.use("/api/auth", authRoutes);
 app.use("/api/order", orderRoutes);
@@ -174,12 +194,12 @@ app.use("/api/admin", adminAuthRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/cart", cartRoutes);
 
-// ==============================
-// 🖼️ Multer Setup (for image upload)
-// ==============================
+// =========================
+// 🖼️ Multer Configuration (Image Uploads)
+// =========================
 const storage = multer.diskStorage({
-  destination: (_, __, cb) => cb(null, uploadDir),
-  filename: (_, file, cb) => {
+  destination: (req, file, cb) => cb(null, uploadDir),
+  filename: (req, file, cb) => {
     const safeName = `${Date.now()}-${file.originalname.replace(/\s+/g, "_")}`;
     cb(null, safeName);
   },
@@ -187,22 +207,26 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_, file, cb) => {
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB limit
+  fileFilter: (req, file, cb) => {
     const allowed = ["image/jpeg", "image/png", "image/jpg", "image/webp"];
     if (allowed.includes(file.mimetype)) cb(null, true);
     else cb(new Error("❌ Only image files are allowed (JPEG, PNG, WEBP)."));
   },
 });
 
-// ✅ Upload route
+// ✅ Upload route for News Images
 app.post("/api/news/upload", upload.single("image"), (req, res) => {
   try {
-    if (!req.file)
-      return res.status(400).json({ success: false, message: "No image uploaded." });
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image uploaded.",
+      });
+    }
 
-    // 🌐 Auto-detect correct base URL for Render/Railway/Local
-    const baseUrl = process.env.BASE_URL || `http://localhost:${PORT}`;
+    const baseUrl =
+      process.env.BASE_URL || "https://your-backend-name.onrender.com";
     const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
     res.status(200).json({
@@ -212,26 +236,28 @@ app.post("/api/news/upload", upload.single("image"), (req, res) => {
     });
   } catch (error) {
     console.error("❌ Upload error:", error);
-    res.status(500).json({ success: false, message: "Server error during upload." });
+    res.status(500).json({
+      success: false,
+      message: "Server error during upload.",
+    });
   }
 });
 
-// ==============================
-// 🩺 Test Database Connection
-// ==============================
+// =========================
+// 🩺 Test DB connection (Neon)
+// =========================
 try {
-  db.connect?.((err) => {
-    if (err) console.error("❌ Database Connection Error:", err);
-    else console.log("✅ MySQL Connected Successfully!");
-  });
-} catch (error) {
-  console.error("⚠️ DB Connection Skipped:", error.message);
+  const result = await db.query("SELECT NOW()");
+  console.log("🧠 DB Connected — Current Time:", result.rows[0].now);
+} catch (err) {
+  console.error("❌ Neon DB Connection Error:", err.message);
 }
 
-// ==============================
+// =========================
 // 🚀 Start Server
-// ==============================
+// =========================
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Server running on port ${PORT}`);
-  console.log(`📸 Uploads available at: http://localhost:${PORT}/uploads`);
+  console.log(`📸 Uploads available at /uploads`);
 });
