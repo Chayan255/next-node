@@ -160,7 +160,7 @@ const app = express();
 // =========================
 app.use(
   cors({
-   origin: ["https://next-node-git-main-chayan-6e5cde23.vercel.app/", "http://localhost:3000" // ✅ লোকাল টেস্টের সময় কাজ করবে
+   origin: ["https://next-node-liard.vercel.app", "http://localhost:3000" // ✅ লোকাল টেস্টের সময় কাজ করবে
      // later replace with your Vercel domain if needed
    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
