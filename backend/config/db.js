@@ -67,26 +67,31 @@ import pkg from "pg";
 import dotenv from "dotenv";
 
 dotenv.config();
-
 const { Pool } = pkg;
 
-// ✅ Create PostgreSQL pool connection
+// ✅ Create PostgreSQL connection pool
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
+  // Keep-alive options so Neon doesn’t close idle connections too soon
+  idleTimeoutMillis: 0,        // never automatically close idle clients
+  connectionTimeoutMillis: 10000, // wait up to 10s for a connection
 });
 
-// ✅ Test connection once (non-blocking)
-pool.connect()
-  .then(client => {
-    console.log("✅ Connected to Neon PostgreSQL Database!");
-    client.release();
-  })
-  .catch(err => {
-    console.error("❌ Database connection failed:", err.message);
-  });
-
-// ✅ Export query helper for all modules
-export default {
-  query: (text, params) => pool.query(text, params),
+// ✅ Simple reusable query function
+const db = {
+  query: async (text, params) => {
+    const client = await pool.connect();
+    try {
+      const res = await client.query(text, params);
+      return res;
+    } catch (err) {
+      console.error("❌ DB Query Error:", err.message);
+      throw err;
+    } finally {
+      client.release(); // always release
+    }
+  },
 };
+
+export default db;
