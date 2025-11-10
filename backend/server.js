@@ -257,6 +257,15 @@ app.post("/api/news/upload", upload.single("image"), (req, res) => {
   }
 })();
 
+app.get("/api/test-db", async (req, res) => {
+  try {
+    const result = await db.query("SELECT COUNT(*) FROM news");
+    res.json({ success: true, totalNews: result.rows[0].count });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // =========================
 // 🚀 Start Server
 // =========================
