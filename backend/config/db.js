@@ -62,27 +62,31 @@
 // // ✅ Export connection (for use in routes/controllers)
 // export default db;
 
-
 // 📁 config/db.js
 import pkg from "pg";
 import dotenv from "dotenv";
 
 dotenv.config();
+
 const { Pool } = pkg;
 
-// ✅ PostgreSQL Pool Connection
+// ✅ Create PostgreSQL pool connection
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: { rejectUnauthorized: false },
 });
 
-// ✅ Test connection
-try {
-  const client = await pool.connect();
-  console.log("✅ Connected to Neon PostgreSQL Database!");
-  client.release();
-} catch (err) {
-  console.error("❌ Database connection error:", err.message);
-}
+// ✅ Test connection once (non-blocking)
+pool.connect()
+  .then(client => {
+    console.log("✅ Connected to Neon PostgreSQL Database!");
+    client.release();
+  })
+  .catch(err => {
+    console.error("❌ Database connection failed:", err.message);
+  });
 
-export default pool;
+// ✅ Export query helper for all modules
+export default {
+  query: (text, params) => pool.query(text, params),
+};

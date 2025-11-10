@@ -130,7 +130,6 @@
 //   console.log(`📸 Uploads available at /uploads`);
 // });
 
-
 import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
@@ -160,9 +159,10 @@ const app = express();
 // =========================
 app.use(
   cors({
-   origin: ["https://next-node-liard.vercel.app", "http://localhost:3000" // ✅ লোকাল টেস্টের সময় কাজ করবে
-     // later replace with your Vercel domain if needed
-   ],
+    origin: [
+      "https://next-node-liard.vercel.app", // ✅ তোমার Vercel frontend domain
+      "http://localhost:3000",               // ✅ লোকাল টেস্টের সময় কাজ করবে
+    ],
     methods: ["GET", "POST", "PUT", "DELETE"],
     allowedHeaders: ["Content-Type", "Authorization"],
   })
@@ -228,7 +228,7 @@ app.post("/api/news/upload", upload.single("image"), (req, res) => {
     }
 
     const baseUrl =
-      process.env.BASE_URL || "https://your-backend-name.onrender.com";
+      process.env.BASE_URL || "https://next-node-backend.onrender.com";
     const imageUrl = `${baseUrl}/uploads/${req.file.filename}`;
 
     res.status(200).json({
@@ -248,12 +248,14 @@ app.post("/api/news/upload", upload.single("image"), (req, res) => {
 // =========================
 // 🩺 Test DB connection (Neon)
 // =========================
-try {
-  const result = await db.query("SELECT NOW()");
-  console.log("🧠 DB Connected — Current Time:", result.rows[0].now);
-} catch (err) {
-  console.error("❌ Neon DB Connection Error:", err.message);
-}
+(async () => {
+  try {
+    const result = await db.query("SELECT NOW()");
+    console.log("🧠 DB Connected — Current Time:", result.rows[0].now);
+  } catch (err) {
+    console.error("❌ Neon DB Connection Error:", err.message);
+  }
+})();
 
 // =========================
 // 🚀 Start Server
