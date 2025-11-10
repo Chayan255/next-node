@@ -1,0 +1,9 @@
+# Dependencies
+node_modules/
+
+# Environment variables
+.env
+
+# Uploads or temp files (optional)
+uploads/
+.DS_Store
